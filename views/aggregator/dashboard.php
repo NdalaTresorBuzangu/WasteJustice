@@ -37,8 +37,64 @@ $expiryNotice = $roleController->getExpiryNotice($userID);
 require_once dirname(dirname(dirname(__FILE__))) . '/classes/aggregator_class.php';
 $aggregatorClass = new AggregatorClass($conn);
 
+// Debug: Check what's in the database
+$debugAll = $conn->query("
+    SELECT collectionID, collectorID, aggregatorID, statusID, weight 
+    FROM WasteCollection 
+    ORDER BY collectionID DESC 
+    LIMIT 10
+");
+
+// Debug: Check what's in the database
+$debugAll = $conn->query("
+    SELECT collectionID, collectorID, aggregatorID, statusID, weight 
+    FROM WasteCollection 
+    ORDER BY collectionID DESC 
+    LIMIT 10
+");
+
 // Get pending deliveries
 $pendingDeliveries = $aggregatorClass->getPendingDeliveries($userID);
+
+// Debug: Check total collections assigned to this aggregator
+$debugQuery = $conn->prepare("
+    SELECT COUNT(*) as total 
+    FROM WasteCollection 
+    WHERE aggregatorID = ? AND statusID = 1
+");
+$debugQuery->bind_param("i", $userID);
+$debugQuery->execute();
+$debugResult = $debugQuery->get_result()->fetch_assoc();
+$totalPendingForAggregator = $debugResult['total'] ?? 0;
+
+// Debug: Check collections without aggregator
+$debugQuery2 = $conn->query("
+    SELECT COUNT(*) as total 
+    FROM WasteCollection 
+    WHERE aggregatorID IS NULL AND statusID = 1
+");
+$debugResult2 = $debugQuery2->fetch_assoc();
+$totalUnassigned = $debugResult2['total'] ?? 0;
+
+// Debug: Check collections assigned to this aggregator
+$debugAssigned = $conn->prepare("
+    SELECT collectionID, collectorID, aggregatorID, statusID 
+    FROM WasteCollection 
+    WHERE aggregatorID = ? AND statusID = 1
+");
+$debugAssigned->bind_param("i", $userID);
+$debugAssigned->execute();
+$debugAssignedResult = $debugAssigned->get_result();
+
+// Debug: Check collections assigned to this aggregator
+$debugAssigned = $conn->prepare("
+    SELECT collectionID, collectorID, aggregatorID, statusID 
+    FROM WasteCollection 
+    WHERE aggregatorID = ? AND statusID = 1
+");
+$debugAssigned->bind_param("i", $userID);
+$debugAssigned->execute();
+$debugAssignedResult = $debugAssigned->get_result();
 
 // Get accepted waste
 $acceptedWaste = $aggregatorClass->getAcceptedWaste($userID);
@@ -199,11 +255,66 @@ $paymentHistory = $aggregatorClass->getPaymentHistory($userID);
             </div>
         </div>
 
+        <!-- Debug Information (remove in production) -->
+        <?php if (isset($_GET['debug'])): ?>
+        <div class="card" style="background: #fff3cd; border-left: 4px solid #ffc107;">
+            <div class="card-header">
+                <h3>🔍 Debug Information</h3>
+            </div>
+            <p><strong>Your Aggregator ID:</strong> <?php echo $userID; ?></p>
+            <p><strong>Collections assigned to you (statusID=1):</strong> <?php echo $debugAssignedResult->num_rows; ?></p>
+            <p><strong>Pending deliveries from query:</strong> <?php echo $pendingDeliveries->num_rows; ?></p>
+            <p><strong>Unassigned collections:</strong> <?php echo $totalUnassigned; ?></p>
+            <h4>Recent Collections in Database:</h4>
+            <table style="font-size: 0.85rem;">
+                <tr><th>ID</th><th>Collector</th><th>Aggregator ID</th><th>Status</th><th>Weight</th></tr>
+                <?php 
+                $debugAll->data_seek(0);
+                while ($row = $debugAll->fetch_assoc()): 
+                ?>
+                    <tr>
+                        <td>#<?php echo $row['collectionID']; ?></td>
+                        <td><?php echo $row['collectorID']; ?></td>
+                        <td><?php echo $row['aggregatorID'] ?? 'NULL'; ?></td>
+                        <td><?php echo $row['statusID']; ?></td>
+                        <td><?php echo $row['weight']; ?> kg</td>
+                    </tr>
+                <?php endwhile; ?>
+            </table>
+            <h4>Collections Assigned to You:</h4>
+            <table style="font-size: 0.85rem;">
+                <tr><th>ID</th><th>Collector</th><th>Status</th></tr>
+                <?php 
+                $debugAssignedResult->data_seek(0);
+                while ($row = $debugAssignedResult->fetch_assoc()): 
+                ?>
+                    <tr>
+                        <td>#<?php echo $row['collectionID']; ?></td>
+                        <td><?php echo $row['collectorID']; ?></td>
+                        <td><?php echo $row['statusID']; ?></td>
+                    </tr>
+                <?php endwhile; ?>
+            </table>
+        </div>
+        <?php endif; ?>
+
         <!-- Pending Deliveries -->
         <div class="card">
             <div class="card-header">
                 <h2>📦 Pending Plastic Waste Deliveries</h2>
+                <a href="?debug=1" style="float: right; font-size: 0.85rem; color: var(--gray);">🔍 Debug</a>
             </div>
+            
+            <?php if ($totalPendingForAggregator > 0 || $totalUnassigned > 0): ?>
+                <?php if ($totalPendingForAggregator == 0 && $totalUnassigned > 0): ?>
+                    <div class="alert alert-info" style="margin-bottom: 1rem; padding: 1rem; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 0.5rem;">
+                        <p style="margin: 0; color: #1565c0;">
+                            <strong>ℹ️ Info:</strong> There are <?php echo $totalUnassigned; ?> collection(s) waiting to be assigned to aggregators. 
+                            Waste collectors need to select an aggregator when submitting waste, or you can contact them to assign their collections to you.
+                        </p>
+                    </div>
+                <?php endif; ?>
+            <?php endif; ?>
             
             <?php if ($pendingDeliveries->num_rows > 0): ?>
                 <table>
@@ -228,9 +339,21 @@ $paymentHistory = $aggregatorClass->getPaymentHistory($userID);
                                 <td><?php echo htmlspecialchars($delivery['typeName']); ?></td>
                                 <td><?php echo number_format($delivery['weight'], 2); ?> kg</td>
                                 <td><?php echo htmlspecialchars($delivery['location']); ?></td>
-                                <td>GH₵<?php echo number_format($delivery['suggestedPrice'], 2); ?>/kg</td>
-                                <td class="price-cell">GH₵<?php echo number_format($delivery['weight'] * $delivery['suggestedPrice'], 2); ?></td>
-                                <td><?php echo date('M d, Y', strtotime($delivery['collectionDate'])); ?></td>
+                                <td>
+                                    <?php if ($delivery['suggestedPrice'] > 0): ?>
+                                        GH₵<?php echo number_format($delivery['suggestedPrice'], 2); ?>/kg
+                                    <?php else: ?>
+                                        <span style="color: var(--orange);">Price not set</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="price-cell">
+                                    <?php if ($delivery['suggestedPrice'] > 0): ?>
+                                        GH₵<?php echo number_format($delivery['weight'] * $delivery['suggestedPrice'], 2); ?>
+                                    <?php else: ?>
+                                        <span style="color: var(--orange);">N/A</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo date('M d, Y', strtotime($delivery['collectionDate'] ?? $delivery['createdAt'] ?? 'now')); ?></td>
                                 <td>
                                     <button onclick="acceptDelivery(<?php echo $delivery['collectionID']; ?>)" class="btn btn-success" style="padding: 0.5rem 1rem; font-size: 0.875rem; margin-bottom: 0.25rem;">
                                         ✓ Accept

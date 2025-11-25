@@ -14,8 +14,40 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($result->num_rows === 1) {
         $user = $result->fetch_assoc();
         
-        // Simple password check (in production, use password_verify with hashed passwords)
-        if ($password === $user['userPassword']) {
+        // Verify password using password_verify (secure method for hashed passwords)
+        // This handles both old plain text passwords (for migration) and new hashed passwords
+        $passwordValid = false;
+        
+        // Check if password is hashed (starts with $2y$ for bcrypt)
+        if (strpos($user['userPassword'], '$2y$') === 0 || strpos($user['userPassword'], '$2a$') === 0 || strpos($user['userPassword'], '$2b$') === 0) {
+            // Password is hashed, use password_verify
+            $passwordValid = password_verify($password, $user['userPassword']);
+            
+            // If verification fails but old password might be plain text, try that (for migration)
+            if (!$passwordValid && strlen($user['userPassword']) < 60) {
+                // Likely old plain text password, verify and upgrade
+                if ($password === $user['userPassword']) {
+                    $passwordValid = true;
+                    // Upgrade to hashed password
+                    $newHash = password_hash($password, PASSWORD_DEFAULT);
+                    $updateStmt = $conn->prepare("UPDATE User SET userPassword = ? WHERE userID = ?");
+                    $updateStmt->bind_param("si", $newHash, $user['userID']);
+                    $updateStmt->execute();
+                }
+            }
+        } else {
+            // Old plain text password (for backward compatibility during migration)
+            if ($password === $user['userPassword']) {
+                $passwordValid = true;
+                // Upgrade to hashed password
+                $newHash = password_hash($password, PASSWORD_DEFAULT);
+                $updateStmt = $conn->prepare("UPDATE User SET userPassword = ? WHERE userID = ?");
+                $updateStmt->bind_param("si", $newHash, $user['userID']);
+                $updateStmt->execute();
+            }
+        }
+        
+        if ($passwordValid) {
             // Set session
             $_SESSION['userID'] = $user['userID'];
             $_SESSION['userName'] = $user['userName'];

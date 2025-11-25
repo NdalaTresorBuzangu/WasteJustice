@@ -11,12 +11,18 @@ class AggregatorClass {
     // View pending deliveries
     public function getPendingDeliveries($aggregatorID) {
         $stmt = $this->conn->prepare("
-            SELECT wc.*, pt.typeName, u.userName as collectorName, u.userContact as collectorContact,
-                   ap.pricePerKg as suggestedPrice
+            SELECT 
+                wc.*, 
+                pt.typeName, 
+                u.userName as collectorName, 
+                u.userContact as collectorContact,
+                COALESCE(ap.pricePerKg, 0) as suggestedPrice
             FROM WasteCollection wc
             JOIN PlasticType pt ON wc.plasticTypeID = pt.plasticTypeID
             JOIN User u ON wc.collectorID = u.userID
-            JOIN AggregatorPricing ap ON wc.aggregatorID = ap.aggregatorID AND wc.plasticTypeID = ap.plasticTypeID
+            LEFT JOIN AggregatorPricing ap ON wc.aggregatorID = ap.aggregatorID 
+                AND wc.plasticTypeID = ap.plasticTypeID 
+                AND ap.isActive = 1
             WHERE wc.aggregatorID = ? AND wc.statusID = 1
             ORDER BY wc.collectionDate DESC
         ");

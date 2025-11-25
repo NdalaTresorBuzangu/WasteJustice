@@ -34,6 +34,9 @@ $role = isset($_GET['role']) ? $_GET['role'] : '';
                         echo '⚠️ <strong>Business Name Required:</strong> Please enter a valid business name (at least 3 characters).';
                     } elseif ($error == 'company_name_required') {
                         echo '⚠️ <strong>Company Name Required:</strong> Please enter a valid company name (at least 3 characters).';
+                    } elseif ($error == 'failed') {
+                        $message = isset($_GET['message']) ? htmlspecialchars(urldecode($_GET['message'])) : 'Registration failed. Please try again.';
+                        echo '✗ <strong>Registration Failed:</strong> ' . $message;
                     } elseif ($error == 'exists') {
                         echo '✗ <strong>Email Already Exists:</strong> This email is already registered. Please use a different email or <a href="' . VIEWS_URL . '/auth/login.php" style="color: inherit; text-decoration: underline;">login here</a>.';
                     } elseif ($error == 'failed') {
@@ -104,13 +107,7 @@ $role = isset($_GET['role']) ? $_GET['role'] : '';
                             id="businessName" 
                             name="businessName" 
                             placeholder="e.g., Green Collection Hub, Eco Waste Center"
-                            required
-                            minlength="3"
-                            maxlength="100"
                         >
-                        <small style="color: var(--gray); display: block; margin-top: 0.25rem;">
-                            Enter a clear, professional business name (3-100 characters)
-                        </small>
                     </div>
                     <div class="form-group">
                         <label for="address">
@@ -119,57 +116,20 @@ $role = isset($_GET['role']) ? $_GET['role'] : '';
                         <input 
                             type="text" 
                             id="address" 
-                            name="address" 
-                            placeholder="e.g., Kaneshie Market, Accra or Circle, Accra"
-                            required
-                            minlength="5"
-                            maxlength="255"
+                            name="aggregatorAddress" 
+                            placeholder="e.g., Kaneshie Market, Accra"
                         >
                         <small style="color: var(--gray); display: block; margin-top: 0.25rem;">
-                            ⚠️ <strong>Required:</strong> Enter your business address. This helps waste collectors find you. Be specific (e.g., street name, area, city).
+                            Enter your business address (required for aggregators)
                         </small>
-                        <button type="button" id="getLocationBtn" onclick="getLocationForAddress()" class="btn btn-secondary" style="margin-top: 0.5rem; padding: 0.5rem 1rem; font-size: 0.9rem;">
-                            📍 Get GPS Location from Address
-                        </button>
-                        <small id="locationStatus" style="display: block; margin-top: 0.5rem; color: var(--primary-green);"></small>
                     </div>
                     <div class="form-group">
-                        <label for="latitude">Latitude (auto-filled or optional)</label>
-                        <input 
-                            type="text" 
-                            id="latitude" 
-                            name="latitude" 
-                            placeholder="Will be auto-filled from address or enter manually"
-                            readonly
-                        >
-                    </div>
-                    <div class="form-group">
-                        <label for="longitude">Longitude (auto-filled or optional)</label>
-                        <input 
-                            type="text" 
-                            id="longitude" 
-                            name="longitude" 
-                            placeholder="Will be auto-filled from address or enter manually"
-                            readonly
-                        >
-                    </div>
-                    <div class="form-group">
-                        <label for="businessLicense">Business License Number</label>
+                        <label for="businessLicense">Business License Number (Optional)</label>
                         <input 
                             type="text" 
                             id="businessLicense" 
                             name="businessLicense" 
                             placeholder="License number (optional)"
-                        >
-                    </div>
-                    <div class="form-group">
-                        <label for="capacity">Storage Capacity (kg)</label>
-                        <input 
-                            type="number" 
-                            id="capacity" 
-                            name="capacity" 
-                            step="0.01"
-                            placeholder="Storage capacity in kilograms (optional)"
                         >
                     </div>
                 </div>
@@ -183,14 +143,8 @@ $role = isset($_GET['role']) ? $_GET['role'] : '';
                             type="text" 
                             id="companyName" 
                             name="companyName" 
-                            placeholder="e.g., RecycleGhana Ltd, Eco Processing Company"
-                            required
-                            minlength="3"
-                            maxlength="255"
+                            placeholder="e.g., RecycleGhana Ltd"
                         >
-                        <small style="color: var(--gray); display: block; margin-top: 0.25rem;">
-                            Enter your official company name (3-255 characters)
-                        </small>
                     </div>
                     <div class="form-group">
                         <label for="companyAddress">
@@ -199,42 +153,15 @@ $role = isset($_GET['role']) ? $_GET['role'] : '';
                         <input 
                             type="text" 
                             id="companyAddress" 
-                            name="address" 
-                            placeholder="e.g., Industrial Area, Accra or Tema Free Zone"
-                            required
-                            minlength="5"
-                            maxlength="255"
+                            name="companyAddress" 
+                            placeholder="e.g., Industrial Area, Accra"
                         >
                         <small style="color: var(--gray); display: block; margin-top: 0.25rem;">
-                            ⚠️ <strong>Required:</strong> Enter your company address. This helps aggregators find you. Be specific (e.g., street name, area, city).
+                            Enter your company address (required for recycling companies)
                         </small>
-                        <button type="button" id="getCompanyLocationBtn" onclick="getLocationForCompanyAddress()" class="btn btn-secondary" style="margin-top: 0.5rem; padding: 0.5rem 1rem; font-size: 0.9rem;">
-                            📍 Get GPS Location from Address
-                        </button>
-                        <small id="companyLocationStatus" style="display: block; margin-top: 0.5rem; color: var(--primary-green);"></small>
                     </div>
                     <div class="form-group">
-                        <label for="companyLatitude">Latitude (auto-filled or optional)</label>
-                        <input 
-                            type="text" 
-                            id="companyLatitude" 
-                            name="latitude" 
-                            placeholder="Will be auto-filled from address or enter manually"
-                            readonly
-                        >
-                    </div>
-                    <div class="form-group">
-                        <label for="companyLongitude">Longitude (auto-filled or optional)</label>
-                        <input 
-                            type="text" 
-                            id="companyLongitude" 
-                            name="longitude" 
-                            placeholder="Will be auto-filled from address or enter manually"
-                            readonly
-                        >
-                    </div>
-                    <div class="form-group">
-                        <label for="companyBusinessLicense">Business License Number</label>
+                        <label for="companyBusinessLicense">Business License Number (Optional)</label>
                         <input 
                             type="text" 
                             id="companyBusinessLicense" 
@@ -299,23 +226,29 @@ $role = isset($_GET['role']) ? $_GET['role'] : '';
             
             // Show/hide aggregator fields
             if (aggFields) {
-                aggFields.style.display = role === 'Aggregator' ? 'block' : 'none';
-                
-                // Make address required for aggregators
-                const addressField = document.getElementById('address');
-                if (addressField) {
-                    addressField.required = role === 'Aggregator';
+                if (role === 'Aggregator') {
+                    aggFields.style.display = 'block';
+                } else {
+                    aggFields.style.display = 'none';
+                    // Clear aggregator fields when hidden
+                    const addressField = document.getElementById('address');
+                    const businessNameField = document.getElementById('businessName');
+                    if (addressField) addressField.value = '';
+                    if (businessNameField) businessNameField.value = '';
                 }
             }
             
             // Show/hide company fields
             if (companyFields) {
-                companyFields.style.display = role === 'Recycling Company' ? 'block' : 'none';
-                
-                // Make company address required
-                const companyAddressField = document.getElementById('companyAddress');
-                if (companyAddressField) {
-                    companyAddressField.required = role === 'Recycling Company';
+                if (role === 'Recycling Company') {
+                    companyFields.style.display = 'block';
+                } else {
+                    companyFields.style.display = 'none';
+                    // Clear company fields when hidden
+                    const companyAddressField = document.getElementById('companyAddress');
+                    const companyNameField = document.getElementById('companyName');
+                    if (companyAddressField) companyAddressField.value = '';
+                    if (companyNameField) companyNameField.value = '';
                 }
             }
         }
@@ -379,46 +312,71 @@ $role = isset($_GET['role']) ? $_GET['role'] : '';
             }
         }
         
-        // Form validation
-        document.querySelector('form').addEventListener('submit', function(e) {
-            const password = document.getElementById('userPassword').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            const role = document.getElementById('userRole').value;
-            
-            if (password !== confirmPassword) {
-                e.preventDefault();
-                alert('Passwords do not match!');
-                return false;
-            }
-            
-            // Validate aggregator address is required
-            if (role === 'Aggregator') {
-                const address = document.getElementById('address').value;
-                if (!address || address.trim().length < 5) {
-                    e.preventDefault();
-                    alert('⚠️ Business address is required for aggregators. Please enter your business address (at least 5 characters).');
-                    return false;
-                }
-            }
-            
-            // Validate recycling company fields are required
-            if (role === 'Recycling Company') {
-                const companyName = document.getElementById('companyName').value;
-                const companyAddress = document.getElementById('companyAddress').value;
+        // Simple form validation - let server handle most validation
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const password = document.getElementById('userPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                const role = document.getElementById('userRole').value;
                 
-                if (!companyName || companyName.trim().length < 3) {
+                // Basic client-side checks only
+                if (password !== confirmPassword) {
                     e.preventDefault();
-                    alert('⚠️ Company name is required for recycling companies. Please enter your company name (at least 3 characters).');
+                    alert('Passwords do not match!');
                     return false;
                 }
                 
-                if (!companyAddress || companyAddress.trim().length < 5) {
+                if (!role) {
                     e.preventDefault();
-                    alert('⚠️ Company address is required for recycling companies. Please enter your company address (at least 5 characters).');
+                    alert('Please select your role.');
                     return false;
                 }
-            }
-        });
+                
+                // Additional validation for aggregators
+                if (role === 'Aggregator') {
+                    const address = document.getElementById('address');
+                    const businessName = document.getElementById('businessName');
+                    
+                    if (!businessName || !businessName.value || businessName.value.trim().length < 2) {
+                        e.preventDefault();
+                        alert('⚠️ Business name is required for aggregators (at least 2 characters).');
+                        if (businessName) businessName.focus();
+                        return false;
+                    }
+                    
+                    if (!address || !address.value || address.value.trim().length < 3) {
+                        e.preventDefault();
+                        alert('⚠️ Business address is required for aggregators (at least 3 characters).');
+                        if (address) address.focus();
+                        return false;
+                    }
+                }
+                
+                // Additional validation for recycling companies
+                if (role === 'Recycling Company') {
+                    const companyAddress = document.getElementById('companyAddress');
+                    const companyName = document.getElementById('companyName');
+                    
+                    if (!companyName || !companyName.value || companyName.value.trim().length < 2) {
+                        e.preventDefault();
+                        alert('⚠️ Company name is required for recycling companies (at least 2 characters).');
+                        if (companyName) companyName.focus();
+                        return false;
+                    }
+                    
+                    if (!companyAddress || !companyAddress.value || companyAddress.value.trim().length < 3) {
+                        e.preventDefault();
+                        alert('⚠️ Company address is required for recycling companies (at least 3 characters).');
+                        if (companyAddress) companyAddress.focus();
+                        return false;
+                    }
+                }
+                
+                // Let form submit normally - server will validate the rest
+                return true;
+            });
+        }
         
         // Get GPS location for company address
         function getLocationForCompanyAddress() {

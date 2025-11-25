@@ -33,7 +33,7 @@ class AdminClass {
         return ['success' => false, 'message' => 'Failed to update user status.'];
     }
     
-    // Get analytics
+    // Get comprehensive analytics
     public function getAnalytics() {
         $data = [];
         
@@ -75,6 +75,115 @@ class AdminClass {
         // Average ratings
         $result = $this->conn->query("SELECT AVG(rating) as avg FROM Feedback");
         $data['averageRating'] = $result->fetch_assoc()['avg'] ?? 0;
+        
+        // Collections by status
+        $result = $this->conn->query("
+            SELECT s.statusName, COUNT(*) as count 
+            FROM WasteCollection wc
+            JOIN Status s ON wc.statusID = s.statusID
+            GROUP BY s.statusID
+        ");
+        $data['collectionsByStatus'] = [];
+        while ($row = $result->fetch_assoc()) {
+            $data['collectionsByStatus'][$row['statusName']] = $row['count'];
+        }
+        
+        // Collections by plastic type
+        $result = $this->conn->query("
+            SELECT pt.typeName, COUNT(*) as count, SUM(wc.weight) as totalWeight
+            FROM WasteCollection wc
+            JOIN PlasticType pt ON wc.plasticTypeID = pt.plasticTypeID
+            GROUP BY pt.plasticTypeID
+        ");
+        $data['collectionsByType'] = [];
+        while ($row = $result->fetch_assoc()) {
+            $data['collectionsByType'][] = $row;
+        }
+        
+        // Recent activity (last 7 days)
+        $result = $this->conn->query("
+            SELECT DATE(collectionDate) as date, COUNT(*) as count
+            FROM WasteCollection
+            WHERE collectionDate >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            GROUP BY DATE(collectionDate)
+            ORDER BY date ASC
+        ");
+        $data['recentActivity'] = [];
+        while ($row = $result->fetch_assoc()) {
+            $data['recentActivity'][] = $row;
+        }
+        
+        // Monthly revenue (last 6 months)
+        // Use paidAt if available, otherwise use createdAt
+        $result = $this->conn->query("
+            SELECT 
+                DATE_FORMAT(COALESCE(paidAt, createdAt), '%Y-%m') as month,
+                SUM(platformFee) as fees,
+                SUM(amount) as payments,
+                SUM(grossAmount) as gross
+            FROM Payment
+            WHERE status = 'completed'
+            AND COALESCE(paidAt, createdAt) >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+            GROUP BY DATE_FORMAT(COALESCE(paidAt, createdAt), '%Y-%m')
+            ORDER BY month ASC
+        ");
+        $data['monthlyRevenue'] = [];
+        while ($row = $result->fetch_assoc()) {
+            $data['monthlyRevenue'][] = $row;
+        }
+        
+        // Top aggregators by collections
+        $result = $this->conn->query("
+            SELECT 
+                u.userID,
+                ar.businessName,
+                COUNT(wc.collectionID) as totalCollections,
+                SUM(wc.weight) as totalWeight
+            FROM User u
+            JOIN AggregatorRegistration ar ON u.userID = ar.userID
+            LEFT JOIN WasteCollection wc ON u.userID = wc.aggregatorID
+            WHERE u.userRole = 'Aggregator'
+            GROUP BY u.userID
+            ORDER BY totalCollections DESC
+            LIMIT 10
+        ");
+        $data['topAggregators'] = [];
+        while ($row = $result->fetch_assoc()) {
+            $data['topAggregators'][] = $row;
+        }
+        
+        // Top collectors by weight
+        $result = $this->conn->query("
+            SELECT 
+                u.userID,
+                u.userName,
+                COUNT(wc.collectionID) as totalCollections,
+                SUM(wc.weight) as totalWeight
+            FROM User u
+            LEFT JOIN WasteCollection wc ON u.userID = wc.collectorID
+            WHERE u.userRole = 'Waste Collector'
+            GROUP BY u.userID
+            ORDER BY totalWeight DESC
+            LIMIT 10
+        ");
+        $data['topCollectors'] = [];
+        while ($row = $result->fetch_assoc()) {
+            $data['topCollectors'][] = $row;
+        }
+        
+        // Subscription statistics
+        $result = $this->conn->query("
+            SELECT 
+                paymentStatus,
+                COUNT(*) as count,
+                SUM(amountPaid) as total
+            FROM Subscriptions
+            GROUP BY paymentStatus
+        ");
+        $data['subscriptionStats'] = [];
+        while ($row = $result->fetch_assoc()) {
+            $data['subscriptionStats'][] = $row;
+        }
         
         return $data;
     }
@@ -148,7 +257,7 @@ class AdminClass {
             SELECT pt.typeName, AVG(ap.pricePerKg) as avgPrice, MIN(ap.pricePerKg) as minPrice, MAX(ap.pricePerKg) as maxPrice
             FROM AggregatorPricing ap
             JOIN PlasticType pt ON ap.plasticTypeID = pt.plasticTypeID
-            WHERE ap.isActive = TRUE
+            WHERE ap.isActive = 1
             GROUP BY pt.plasticTypeID
         ");
         $data['aggregatorPrices'] = [];
@@ -161,7 +270,7 @@ class AdminClass {
             SELECT pt.typeName, AVG(cp.pricePerKg) as avgPrice, MIN(cp.pricePerKg) as minPrice, MAX(cp.pricePerKg) as maxPrice
             FROM CompanyPricing cp
             JOIN PlasticType pt ON cp.plasticTypeID = pt.plasticTypeID
-            WHERE cp.isActive = TRUE
+            WHERE cp.isActive = 1
             GROUP BY pt.plasticTypeID
         ");
         $data['companyPrices'] = [];
