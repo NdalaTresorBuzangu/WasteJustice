@@ -19,7 +19,7 @@ require_once 'config/config.php';
             <nav>
                 <ul>
                     <li><a href="index.php">Home</a></li>
-                    <li><a href="about.php">About</a></li>
+                    <li><a href="<?php echo PAGES_URL; ?>/about.php">About</a></li>
                     <li><a href="<?php echo VIEWS_URL; ?>/auth/login.php">Login</a></li>
                     <li><a href="<?php echo VIEWS_URL; ?>/auth/signup.php">Sign Up</a></li>
                 </ul>

@@ -12,6 +12,7 @@ define('ASSETS_URL', BASE_URL . '/assets');
 define('VIEWS_URL', BASE_URL . '/views');
 define('ACTIONS_URL', BASE_URL . '/actions');
 define('API_URL', BASE_URL . '/api');
+define('PAGES_URL', BASE_URL . '/pages');
 
 // Application settings
 define('APP_NAME', 'WasteJustice');

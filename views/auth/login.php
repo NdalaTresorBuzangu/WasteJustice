@@ -76,7 +76,7 @@ if (isset($_GET['registered'])) {
                     <a href="<?php echo BASE_URL; ?>/index.php" style="color: var(--gray); text-decoration: none; margin-right: 1rem;">
                         ← Back to Home
                     </a>
-                    <a href="<?php echo BASE_URL; ?>/about.php" style="color: var(--gray); text-decoration: none;">
+                    <a href="<?php echo PAGES_URL; ?>/about.php" style="color: var(--gray); text-decoration: none;">
                         About Us
                     </a>
                 </p>
